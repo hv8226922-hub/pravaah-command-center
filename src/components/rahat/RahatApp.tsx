@@ -43,7 +43,10 @@ export function RahatApp() {
   const [plan, setPlan] = useState(false);
   const zones = state === "Assam" ? assamZones : biharZones;
   const sites = relocationSites[state];
-  const selectedZone = zones[0];
+  const selectedZone: HazardZone = zones[0] ?? {
+    id: "DEMO-001", location: state === "Assam" ? "Dhubri" : "Darbhanga", hazard: "Flood",
+    population: 0, vulnerable: 0, risk: "CRITICAL", center: [26, 90], coordinates: [],
+  };
   const available = sites.slice(0, 3).reduce((sum, site) => sum + site.capacity - site.occupancy, 0);
   const relocationPopulation = state === "Assam" ? 31500 : 34800;
   const stats = stateStats[state];
