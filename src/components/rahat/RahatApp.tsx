@@ -75,8 +75,8 @@ export function RahatApp() {
   const changeState = (next: DemoState) => { setState(next); setDistrict("All Districts"); setSelectedSites([]); setQuery(""); };
   const openSearchResult = (result: (typeof searchResults)[number]) => {
     setQuery("");
-    if (result.zone) { setView("map"); setZone(result.zone); }
-    else { setView("relocation"); setSelectedSites(result.site ? [result.site] : []); }
+    if ("zone" in result) { setView("map"); setZone(result.zone); }
+    else { setView("relocation"); setSelectedSites([result.site]); }
   };
 
   return (

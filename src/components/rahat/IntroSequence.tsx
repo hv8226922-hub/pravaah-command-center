@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,19 +8,24 @@ type IntroSequenceProps = {
 
 export function IntroSequence({ onComplete }: IntroSequenceProps) {
   const [closing, setClosing] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const beginClose = window.setTimeout(() => setClosing(true), 3100);
-    const finish = window.setTimeout(onComplete, 3700);
+    const finish = window.setTimeout(() => onCompleteRef.current(), 3700);
     return () => {
       window.clearTimeout(beginClose);
       window.clearTimeout(finish);
     };
-  }, [onComplete]);
+  }, []);
 
   const dismiss = () => {
     setClosing(true);
-    window.setTimeout(onComplete, 450);
+    window.setTimeout(() => onCompleteRef.current(), 450);
   };
 
   return (
