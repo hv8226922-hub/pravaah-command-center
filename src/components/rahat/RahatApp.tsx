@@ -14,6 +14,7 @@ import { assamZones, biharZones, type HazardZone } from "@/data/hazards";
 import { habitations, populationRisk } from "@/data/population";
 import { relocationSites } from "@/data/relocationSites";
 import { weather } from "@/data/weather";
+import { IntroSequence } from "./IntroSequence";
 import { RiskMap } from "./RiskMap";
 
 type View = "overview" | "map" | "relocation" | "alerts";
@@ -34,6 +35,7 @@ function SectionTitle({ children, label }: { children: React.ReactNode; label?: 
 }
 
 export function RahatApp() {
+  const [showIntro, setShowIntro] = useState(true);
   const [view, setView] = useState<View>("overview");
   const [state, setState] = useState<DemoState>("Assam");
   const [district, setDistrict] = useState("All Districts");
@@ -79,6 +81,7 @@ export function RahatApp() {
 
   return (
     <div className="app-shell">
+      {showIntro && <IntroSequence onComplete={() => setShowIntro(false)} />}
       <aside className={`sidebar ${sidebar ? "sidebar-open" : ""}`}>
         <div className="brand"><div className="brand-mark"><ShieldAlert /></div><div><strong>RAHAT</strong><span>DISASTER INTELLIGENCE</span></div></div>
         <div className="side-rule" />
