@@ -160,7 +160,7 @@
 @utility panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
 
 /* Opening sequence */
-.intro-sequence { position: fixed; inset: 0; z-index: 200; overflow: hidden; display: grid; place-items: center; background: var(--background); color: var(--foreground); opacity: 1; transition: opacity .55s ease, visibility .55s ease; }
+.intro-sequence { position: fixed; inset: 0; z-index: 2000; overflow: hidden; display: grid; place-items: center; background: var(--background); color: var(--foreground); opacity: 1; transition: opacity .55s ease, visibility .55s ease; }
 .intro-sequence.intro-closing { opacity: 0; visibility: hidden; }
 .intro-grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(color-mix(in oklab, var(--map-blue) 28%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--map-blue) 28%, transparent) 1px, transparent 1px); background-size: 52px 52px; mask-image: radial-gradient(circle at center, black 0, transparent 72%); }
 .intro-scan { position: absolute; left: 0; right: 0; height: 1px; top: -5%; background: var(--map-blue); box-shadow: 0 0 18px var(--map-blue), 0 0 70px color-mix(in oklab, var(--map-blue) 34%, transparent); opacity: .52; }
