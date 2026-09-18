@@ -160,8 +160,8 @@
 @utility panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
 
 /* Opening sequence */
-.intro-sequence { position: fixed; inset: 0; z-index: 2000; overflow: hidden; display: grid; place-items: center; background: var(--background); color: var(--foreground); opacity: 1; transition: opacity .55s ease, visibility .55s ease; }
-.intro-sequence.intro-closing { opacity: 0; visibility: hidden; }
+.intro-sequence { position: fixed; inset: 0; z-index: 2000; overflow: hidden; display: grid; place-items: center; background: var(--background); color: var(--foreground); opacity: 1; animation: intro-dismiss .55s ease 3.15s forwards; }
+.intro-sequence.intro-closing { animation: intro-dismiss .42s ease forwards; }
 .intro-grid { position: absolute; inset: 0; opacity: .12; background-image: linear-gradient(color-mix(in oklab, var(--map-blue) 28%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--map-blue) 28%, transparent) 1px, transparent 1px); background-size: 52px 52px; mask-image: radial-gradient(circle at center, black 0, transparent 72%); }
 .intro-scan { position: absolute; left: 0; right: 0; height: 1px; top: -5%; background: var(--map-blue); box-shadow: 0 0 18px var(--map-blue), 0 0 70px color-mix(in oklab, var(--map-blue) 34%, transparent); opacity: .52; }
 .intro-center { position: relative; width: min(560px, calc(100vw - 40px)); display: grid; justify-items: center; text-align: center; }
@@ -193,6 +193,7 @@
 @keyframes intro-rule-load { to { width: 100%; } }
 @keyframes intro-segment-load { to { transform: scaleX(1); background: var(--map-blue); box-shadow: 0 0 8px color-mix(in oklab, var(--map-blue) 40%, transparent); } }
 @keyframes intro-scan-pass { 0% { top: -5%; } 100% { top: 105%; } }
+@keyframes intro-dismiss { to { opacity: 0; visibility: hidden; pointer-events: none; } }
 @media (prefers-reduced-motion: no-preference) {
   .intro-emblem { animation: intro-emblem-in .8s cubic-bezier(.16, 1, .3, 1) .18s forwards; }
   .intro-orbit-outer { animation: intro-orbit-spin 9s linear infinite; }.intro-orbit-inner { animation: intro-orbit-spin 6s linear infinite reverse; }

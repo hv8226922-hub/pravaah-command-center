@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,28 +8,13 @@ type IntroSequenceProps = {
 
 export function IntroSequence({ onComplete }: IntroSequenceProps) {
   const [closing, setClosing] = useState(false);
-  const onCompleteRef = useRef(onComplete);
-
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-  }, [onComplete]);
-
-  useEffect(() => {
-    const beginClose = window.setTimeout(() => setClosing(true), 3100);
-    const finish = window.setTimeout(() => onCompleteRef.current(), 3700);
-    return () => {
-      window.clearTimeout(beginClose);
-      window.clearTimeout(finish);
-    };
-  }, []);
 
   const dismiss = () => {
     setClosing(true);
-    window.setTimeout(() => onCompleteRef.current(), 450);
   };
 
   return (
-    <div className={`intro-sequence ${closing ? "intro-closing" : ""}`} role="status" aria-live="polite">
+    <div className={`intro-sequence ${closing ? "intro-closing" : ""}`} role="status" aria-live="polite" onAnimationEnd={(event) => event.animationName === "intro-dismiss" && onComplete()}>
       <div className="intro-grid" />
       <div className="intro-scan" />
       <div className="intro-corner intro-corner-tl" />
