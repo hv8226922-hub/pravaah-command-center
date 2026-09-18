@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
-  AlertTriangle, Bell, Building2, ChevronDown, CloudRain, Database, Droplets,
-  Gauge, Home, LocateFixed, Map, Menu, Navigation, Search, ShieldAlert, Users, X,
+  AlertTriangle, Bell, Building2, Check, ChevronDown, ChevronUp, CloudRain, Database, Droplets,
+  Gauge, Home, LocateFixed, Map, Menu, Navigation, Radio, Search, ShieldAlert, Users,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,9 @@ export function RahatApp() {
   const [zone, setZone] = useState<HazardZone | null>(null);
   const [simulation, setSimulation] = useState(false);
   const [plan, setPlan] = useState(false);
+  const [notifications, setNotifications] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
   const zones = state === "Assam" ? assamZones : biharZones;
   const sites = relocationSites[state];
   const selectedZone: HazardZone = zones[0] ?? {
@@ -59,7 +62,20 @@ export function RahatApp() {
     { label: "Active alerts", value: stats.alerts, note: "2 Critical", icon: Bell },
   ], [stats]);
 
-  const changeState = (next: DemoState) => { setState(next); setDistrict("All Districts"); };
+  const searchResults = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return [];
+    const zoneResults = zones.filter((item) => `${item.location} ${item.id} ${item.hazard}`.toLowerCase().includes(needle)).map((item) => ({ label: item.location, meta: `${item.id} · ${item.hazard}`, zone: item }));
+    const siteResults = sites.filter((item) => item.name.toLowerCase().includes(needle)).map((item) => ({ label: item.name, meta: `Relocation centre · ${item.distance}`, site: item.name }));
+    return [...zoneResults, ...siteResults].slice(0, 6);
+  }, [query, zones, sites]);
+
+  const changeState = (next: DemoState) => { setState(next); setDistrict("All Districts"); setSelectedSites([]); setQuery(""); };
+  const openSearchResult = (result: (typeof searchResults)[number]) => {
+    setQuery("");
+    if (result.zone) { setView("map"); setZone(result.zone); }
+    else { setView("relocation"); setSelectedSites(result.site ? [result.site] : []); }
+  };
 
   return (
     <div className="app-shell">
@@ -82,16 +98,17 @@ export function RahatApp() {
         <header className="topbar">
           <Button variant="ghost" size="icon" className="menu-button" onClick={() => setSidebar(true)} aria-label="Open navigation"><Menu /></Button>
           <strong>{state.toUpperCase()} DISASTER INTELLIGENCE</strong>
-          <div className="search"><Search /><input aria-label="Search location" placeholder="Search location..." /></div>
+          <div className="search-area"><div className="search"><Search /><input aria-label="Search location" placeholder="Search zones or centres..." value={query} onChange={(event) => setQuery(event.target.value)} /></div>{query && <div className="search-results">{searchResults.length ? searchResults.map((result) => <button type="button" key={`${result.label}-${result.meta}`} onClick={() => openSearchResult(result)}><Search /><span><strong>{result.label}</strong><small>{result.meta}</small></span></button>) : <p>No demo locations found</p>}</div>}</div>
           <div className="top-state">{state}<ChevronDown /></div>
           <span className="date">16 Sep 2026</span>
           <Status tone="critical">● DEMO MODE</Status>
-          <Button variant="ghost" size="icon" aria-label="Notifications"><Bell /></Button>
+          <Button variant="ghost" size="icon" className="notification-button" aria-label="Notifications" onClick={() => setNotifications(true)}><Bell /><span>{stats.alerts}</span></Button>
         </header>
 
         <main>
           {view === "overview" && <>
-            <div className="page-heading"><div><h1>{state} Disaster Intelligence</h1><p>Multi-hazard monitoring and proactive relocation decision support.</p></div><Status>DEMO DATA</Status></div>
+            <div className="command-strip"><div><Radio /><span>OPS NODE</span><strong>RHT-{state === "Assam" ? "AS" : "BR"}-01</strong></div><div><span>ALERT LEVEL</span><strong className="critical-text">CRITICAL</strong></div><div><span>MAP FEED</span><strong className="safe-text">SYNCHRONISED</strong></div><div><span>MODEL RUN</span><strong>09:42 IST</strong></div></div>
+            <div className="page-heading"><div><span className="page-kicker">STATE OPERATIONS / LIVE OVERVIEW</span><h1>{state} Disaster Intelligence</h1><p>Multi-hazard monitoring and proactive relocation decision support.</p></div><Status>DEMO DATA</Status></div>
             <div className="kpi-grid">{kpis.map(({ label, value, note, icon: Icon }) => <article className="kpi" key={label}><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div><Icon /></article>)}</div>
             <div className="map-layout">
               <section className="panel map-panel"><SectionTitle label="LIVE OPERATIONAL VIEW">RISK MAP — {state.toUpperCase()}</SectionTitle><div className="map-wrap"><RiskMap state={state} zones={zones} sites={sites} onZoneDetails={openZone} /><div className="map-legend"><span><i className="legend-critical" /> Red zone</span><span><i className="legend-high" /> High risk</span><span><i className="legend-safe" /> Relocation centre</span></div></div></section>
@@ -112,14 +129,16 @@ export function RahatApp() {
 
           {view === "map" && <><div className="page-heading"><div><h1>Risk Map</h1><p>District-level hazard exposure and safe relocation sites.</p></div><Status>DEMO GIS DATA</Status></div><section className="panel full-map"><SectionTitle label={`${zones.length} ACTIVE ZONES`}>{state.toUpperCase()} HAZARD OVERVIEW</SectionTitle><div className="map-wrap"><RiskMap state={state} zones={zones} sites={sites} onZoneDetails={openZone} /><div className="map-legend"><span><i className="legend-critical" /> Red zone</span><span><i className="legend-high" /> High risk</span><span><i className="legend-safe" /> Relocation centre</span></div></div></section></>}
 
-          {view === "relocation" && <RelocationView state={state} zone={selectedZone} sites={sites.slice(0, 3)} population={relocationPopulation} available={available} onPlan={() => setPlan(true)} />}
+          {view === "relocation" && <RelocationView state={state} zone={selectedZone} sites={sites.slice(0, 3)} population={relocationPopulation} available={available} selectedSites={selectedSites} onSelect={(name) => setSelectedSites((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name])} onPlan={() => setPlan(true)} />}
           {view === "alerts" && <AlertsView state={state} />}
         </main>
+        <footer className="ops-footer"><span><i /> PRIMARY MAP LINK: ACTIVE</span><span><i /> DEMO TELEMETRY: CONNECTED</span><span>NODE RHT-{state === "Assam" ? "AS" : "BR"}-01</span><span>16 SEP 2026 · 09:42 IST</span></footer>
       </div>
 
       <Sheet open={Boolean(zone)} onOpenChange={(open) => !open && setZone(null)}><SheetContent className="zone-sheet"><SheetHeader><span className="eyebrow">RED ZONE INTELLIGENCE</span><SheetTitle>{zone?.location} Risk Profile</SheetTitle><SheetDescription>Demo scoring model · Authority review required</SheetDescription></SheetHeader>{zone && <ZoneDetails zone={zone} />}</SheetContent></Sheet>
       <Dialog open={simulation} onOpenChange={setSimulation}><DialogContent className="command-dialog"><DialogHeader><span className="eyebrow">SIMULATED SCENARIO</span><DialogTitle>Scenario Simulation</DialogTitle><DialogDescription>This is not a real forecast. Values demonstrate proactive planning support.</DialogDescription></DialogHeader><div className="simulation-grid">{[["Rainfall", "+20%"], ["Potential affected zones", "+8"], ["Population at risk", "+126K"], ["Relocation demand", "+42K"], ["Capacity gap", "+18K"], ["Food requirement", "+620 MT"]].map(([a,b]) => <div key={a}><span>{a}</span><strong>{b}</strong></div>)}</div></DialogContent></Dialog>
-      <Dialog open={plan} onOpenChange={setPlan}><DialogContent className="command-dialog"><DialogHeader><span className="eyebrow">DEMO RELOCATION PLAN</span><DialogTitle>{state === "Assam" ? "Dhubri" : "Darbhanga"} Red Zone</DialogTitle><DialogDescription>Requires authority validation.</DialogDescription></DialogHeader><dl className="plan-list"><div><dt>Source</dt><dd>{selectedZone.id}</dd></div><div><dt>Population</dt><dd>{relocationPopulation.toLocaleString("en-IN")}</dd></div><div><dt>Primary Site</dt><dd>{sites[0]?.shortName}</dd></div><div><dt>Secondary Site</dt><dd>{sites[1]?.shortName}</dd></div><div><dt>Status</dt><dd><Status tone="warning">DRAFT</Status></dd></div></dl></DialogContent></Dialog>
+      <Dialog open={plan} onOpenChange={setPlan}><DialogContent className="command-dialog"><DialogHeader><span className="eyebrow">DEMO RELOCATION PLAN</span><DialogTitle>{state === "Assam" ? "Dhubri" : "Darbhanga"} Red Zone</DialogTitle><DialogDescription>Requires authority validation.</DialogDescription></DialogHeader><dl className="plan-list"><div><dt>Source</dt><dd>{selectedZone.id}</dd></div><div><dt>Population</dt><dd>{relocationPopulation.toLocaleString("en-IN")}</dd></div><div><dt>Primary Site</dt><dd>{selectedSites[0] ?? sites[0]?.shortName}</dd></div><div><dt>Secondary Site</dt><dd>{selectedSites[1] ?? sites[1]?.shortName}</dd></div><div><dt>Status</dt><dd><Status tone="warning">DRAFT</Status></dd></div></dl></DialogContent></Dialog>
+      <Dialog open={notifications} onOpenChange={setNotifications}><DialogContent className="command-dialog notification-dialog"><DialogHeader><span className="eyebrow">ACTIVE SIGNALS</span><DialogTitle>Operational Notifications</DialogTitle><DialogDescription>{stats.alerts} active demo alerts · showing highest priority</DialogDescription></DialogHeader><div className="notification-list">{alerts[state].slice(0, 3).map((alert) => <button type="button" key={alert.title} onClick={() => { setNotifications(false); setView("alerts"); }}><Status tone={alert.level === "CRITICAL" ? "critical" : alert.level === "HIGH" ? "warning" : "watch"}>{alert.level}</Status><span><strong>{alert.title} · {alert.district}</strong><small>Updated {alert.updated}</small></span><ChevronDown /></button>)}</div><Button onClick={() => { setNotifications(false); setView("alerts"); }}>Open alert center</Button></DialogContent></Dialog>
     </div>
   );
 }
@@ -130,11 +149,12 @@ function ZoneDetails({ zone }: { zone: HazardZone }) {
   return <div className="zone-content"><dl className="facts">{facts.map(([a,b]) => <div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl><div className="history"><span>HISTORICAL EVENTS</span><div>{[2022, 2023, 2024, 2025].map((y) => <b key={y}>{y}</b>)}</div></div><h3>RISK FACTORS</h3>{factors.map(([label, value]) => <div className="factor" key={label}><div><span>{label}</span><b>{value}</b></div><div className="factor-bar"><i style={{ width: `${value}%` }} /></div></div>)}<small>DEMO SCORING MODEL</small></div>;
 }
 
-function RelocationView({ state, zone, sites, population, available, onPlan }: { state: DemoState; zone: HazardZone; sites: ReturnType<typeof relocationSites[DemoState]["slice"]>; population: number; available: number; onPlan: () => void }) {
+function RelocationView({ state, zone, sites, population, available, selectedSites, onSelect, onPlan }: { state: DemoState; zone: HazardZone; sites: ReturnType<typeof relocationSites[DemoState]["slice"]>; population: number; available: number; selectedSites: string[]; onSelect: (name: string) => void; onPlan: () => void }) {
   const gap = population - available;
-  return <><div className="page-heading"><div><h1>Relocation Intelligence</h1><p>Identify safer locations for people living inside high-risk zones.</p></div><Status>DEMO DATA</Status></div><section className="selection-band"><div><span>SELECT RED ZONE</span><strong>{zone.location} — {zone.id}</strong></div><div><span>POPULATION REQUIRING RELOCATION</span><strong>{population.toLocaleString("en-IN")}</strong></div></section><div className="site-grid">{sites.map((site, i) => { const free = site.capacity - site.occupancy; return <article className="site-card" key={site.name}><div className="site-head"><div><span>RELOCATION CENTRE 0{i + 1}</span><h2>{site.name}</h2><p><Navigation /> {site.distance} from risk zone</p></div><Status tone={site.status === "AVAILABLE" ? "safe" : "warning"}>{site.status}</Status></div><div className="capacity"><div><span>TOTAL CAPACITY</span><strong>{site.capacity.toLocaleString("en-IN")}</strong></div><div><span>CURRENT OCCUPANCY</span><strong>{site.occupancy.toLocaleString("en-IN")}</strong></div><div><span>AVAILABLE</span><strong className="safe-text">{free.toLocaleString("en-IN")}</strong></div></div><div className="occupancy"><i style={{ width: `${site.occupancy / site.capacity * 100}%` }} /></div><dl className="amenities">{[["Food", site.food], ["Water", site.water], ["Medical", site.medical], ["Road", site.road], ["Hazard", site.hazard]].map(([a,b]) => <div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl><Button variant="outline" className="select-site">SELECT SITE</Button></article>; })}</div><section className="decision-panel"><div><span>RELOCATION REQUIREMENT</span><strong>{population.toLocaleString("en-IN")} people</strong></div><div><span>AVAILABLE CAPACITY</span><strong>{available.toLocaleString("en-IN")}</strong></div><div><span>CAPACITY GAP</span><strong className="critical-text">{gap.toLocaleString("en-IN")}</strong></div><div className="decision-status"><Status tone="critical">RELOCATION CAPACITY INSUFFICIENT</Status><p>Additional safe sites required.</p></div><Button onClick={onPlan}><Database />Create demo relocation plan</Button></section></>;
+  return <><div className="page-heading"><div><span className="page-kicker">ALLOCATION ENGINE / SITE COMPARISON</span><h1>Relocation Intelligence</h1><p>Identify safer locations for people living inside high-risk zones.</p></div><Status>DEMO DATA</Status></div><section className="selection-band"><div><span>SELECT RED ZONE</span><strong>{zone.location} — {zone.id}</strong></div><div><span>POPULATION REQUIRING RELOCATION</span><strong>{population.toLocaleString("en-IN")}</strong></div></section><div className="site-grid">{sites.map((site, i) => { const free = site.capacity - site.occupancy; const selected = selectedSites.includes(site.name); return <article className={`site-card ${selected ? "site-selected" : ""}`} key={site.name}><div className="site-head"><div><span>RELOCATION CENTRE 0{i + 1}</span><h2>{site.name}</h2><p><Navigation /> {site.distance} from risk zone</p></div><Status tone={site.status === "AVAILABLE" ? "safe" : "warning"}>{site.status}</Status></div><div className="capacity"><div><span>TOTAL CAPACITY</span><strong>{site.capacity.toLocaleString("en-IN")}</strong></div><div><span>CURRENT OCCUPANCY</span><strong>{site.occupancy.toLocaleString("en-IN")}</strong></div><div><span>AVAILABLE</span><strong className="safe-text">{free.toLocaleString("en-IN")}</strong></div></div><div className="occupancy"><i style={{ width: `${site.occupancy / site.capacity * 100}%` }} /></div><dl className="amenities">{[["Food", site.food], ["Water", site.water], ["Medical", site.medical], ["Road", site.road], ["Hazard", site.hazard]].map(([a,b]) => <div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl><Button variant={selected ? "default" : "outline"} className="select-site" onClick={() => onSelect(site.name)}>{selected ? <><Check /> SELECTED</> : "SELECT SITE"}</Button></article>; })}</div><section className="decision-panel"><div><span>RELOCATION REQUIREMENT</span><strong>{population.toLocaleString("en-IN")} people</strong></div><div><span>AVAILABLE CAPACITY</span><strong>{available.toLocaleString("en-IN")}</strong></div><div><span>CAPACITY GAP</span><strong className="critical-text">{gap.toLocaleString("en-IN")}</strong></div><div className="decision-status"><Status tone="critical">RELOCATION CAPACITY INSUFFICIENT</Status><p>{selectedSites.length} centre{selectedSites.length === 1 ? "" : "s"} selected · additional safe sites required.</p></div><Button onClick={onPlan}><Database />Create demo relocation plan</Button></section></>;
 }
 
 function AlertsView({ state }: { state: DemoState }) {
-  return <><div className="page-heading"><div><h1>Disaster Alert Center</h1><p>Prioritised operational alerts for {state}.</p></div><Status>ALL DEMO ALERTS</Status></div><div className="alerts-list">{alerts[state].map((alert) => <article className={`alert-card alert-${alert.level.toLowerCase()}`} key={alert.title}><div className="alert-icon"><AlertTriangle /></div><div><div className="alert-heading"><Status tone={alert.level === "CRITICAL" ? "critical" : alert.level === "HIGH" ? "warning" : alert.level === "WATCH" ? "watch" : "info"}>{alert.level}</Status><span>Updated {alert.updated}</span></div><h2>{alert.title}</h2><strong>{alert.district}</strong><p>{alert.message}</p></div><Button variant="ghost" size="icon" aria-label={`Open ${alert.title}`}><ChevronDown /></Button></article>)}</div></>;
+  const [expanded, setExpanded] = useState<string | null>(null);
+  return <><div className="page-heading"><div><span className="page-kicker">INCIDENT FEED / PRIORITY ORDER</span><h1>Disaster Alert Center</h1><p>Prioritised operational alerts for {state}.</p></div><Status>ALL DEMO ALERTS</Status></div><div className="alerts-list">{alerts[state].map((alert) => { const open = expanded === alert.title; return <article className={`alert-card alert-${alert.level.toLowerCase()} ${open ? "alert-open" : ""}`} key={alert.title}><div className="alert-icon"><AlertTriangle /></div><div><div className="alert-heading"><Status tone={alert.level === "CRITICAL" ? "critical" : alert.level === "HIGH" ? "warning" : alert.level === "WATCH" ? "watch" : "info"}>{alert.level}</Status><span>Updated {alert.updated}</span></div><h2>{alert.title}</h2><strong>{alert.district}</strong><p>{alert.message}</p>{open && <div className="alert-detail"><span>RECOMMENDED DEMO ACTION</span><p>{alert.level === "CRITICAL" ? "Review exposed habitations and initiate relocation readiness checks." : alert.level === "HIGH" ? "Pre-position response teams and monitor local rainfall indicators." : "Continue monitoring and verify the next simulated update."}</p></div>}</div><Button variant="ghost" size="icon" aria-label={`${open ? "Close" : "Open"} ${alert.title}`} onClick={() => setExpanded(open ? null : alert.title)}>{open ? <ChevronUp /> : <ChevronDown />}</Button></article>; })}</div></>;
 }
